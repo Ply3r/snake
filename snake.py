@@ -3,14 +3,17 @@ from colour import Color
 from random import randint
 
 # const, variables
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1240, 720
 GREEN = [0, 255, 0]
 WHITE = [255, 255, 255]
 RED = [255, 0, 0]
 FPS = 30
+SNAKE_COLORS = [['#12c2e9', '#f64f59'], ['#457fca', '#5691c8'], ['#00C9FF', '#92FE9D'], ['#f46b45', '#eea849']]
+snake_color = []
 
 pygame.font.init()
-scoreText = pygame.font.SysFont('Comic Sans MS', 30)
+title = pygame.font.SysFont('Arial', 50)
+middleText = pygame.font.SysFont('Arial', 20)
 
 WINDOW = pygame.display.set_mode([WIDTH, HEIGHT])
 pygame.display.set_caption("Snake")
@@ -21,20 +24,42 @@ APPLE = pygame.Surface((20, 20))
 APPLE.fill(RED)
 
 
+def pick_snake_color():
+    global snake_color
+    index = randint(0, len(SNAKE_COLORS) - 1)
+    snake_color = SNAKE_COLORS[index]
+
+pick_snake_color()
+
+
 def create_apple():
     x = randint(20, WIDTH - 20)
     y = randint(20, HEIGHT - 20)
     return [x, y]
 
 
+def generateGridPos(direction):
+    hold = 0
+    if (direction == 'x'): 
+        hold = randint(0, WIDTH - 20)
+    else:
+        hold = randint(0, HEIGHT - 20)
+        
+    hold = (hold // 20) * 20
+
+    return hold
+
+
 def generate_position():
-    x = randint(0, WIDTH - 40)
-    y = randint(0, HEIGHT - 40)
+    x = generateGridPos('x')
+    y = generateGridPos('y')
     position = [x, y]
-    for snake_pos in snake:
-        if (snake_pos[0] - 20 <= position[0] <= snake_pos[0] + 20) \
-                and (snake_pos[1] - 20 <= position[1] <= snake_pos[1] + 20):
-            generate_position()
+
+    for pos in snake:
+        if (pos[0] - 20 <= position[0] <= pos[0] + 20) \
+                and (pos[1] - 20 <= position[1] <= pos[1] + 20):
+            position = generate_position()
+    
     return position
 
 
@@ -64,8 +89,8 @@ def move_snake(direction, velocity):
 
 
 def random_rgb(size):
-    first_color = Color('#12c2e9')
-    last_color = Color('#f64f59')
+    first_color = Color(snake_color[0])
+    last_color = Color(snake_color[1])
     arrayOfColors = list(first_color.range_to(last_color, size))
     hold = []
     for color in arrayOfColors:
@@ -86,14 +111,15 @@ def eat_apple(apple):
 
 
 def draw_window(apple, score, game_over):
-    if game_over:
-        game_over_text = scoreText.render('Game Over', False, WHITE)
-        WINDOW.fill([0, 0, 0])
-        WINDOW.blit(game_over_text, [WIDTH//2 - 80, HEIGHT//2 - 40])
-    else:
-        scoreRender = scoreText.render(f'Score {score}', False, WHITE)
+    scoreRender = middleText.render(f'Score {score}', False, WHITE)
+    WINDOW.fill([0, 0, 0])
 
-        WINDOW.fill([0, 0, 0])
+    if game_over:
+        game_over_text = title.render('Game Over', False, WHITE)
+        WINDOW.blit(game_over_text, [WIDTH//2 - 120, HEIGHT//2 - 80])
+        WINDOW.blit(scoreRender, [WIDTH//2 - 30, HEIGHT//2])
+    else:
+
         WINDOW.blit(scoreRender, [0, 0])
         WINDOW.blit(APPLE, [apple.x, apple.y])
 
@@ -108,27 +134,28 @@ def draw_window(apple, score, game_over):
             index += 1
 
 
-def check_body_colision():
-    global score
-    global game_over
+def check_body_colision(game_over):
     snake_head = snake[0]
     for index in range(len(snake)):
-        print(snake_head, snake[index])
         if snake_head == snake[index] and index != 0:
-            score = 0
             game_over = True
+    return game_over
+            
 
 
 def check_game_over(game_over):
     snake_head = snake[0]
-    global score
-    if snake_head[0] <= -20 or snake_head[0] >= WIDTH + 20:
+    global velocity
+    if snake_head[0] <= -20 or snake_head[0] >= WIDTH:
         game_over = True
-        score = 0
-    if snake_head[1] <= -20 or snake_head[1] >= HEIGHT + 20:
+        
+    if snake_head[1] <= -20 or snake_head[1] >= HEIGHT:
         game_over = True
-        score = 0
-    check_body_colision()
+        
+    game_over = check_body_colision(game_over)
+
+    if game_over:
+        velocity = 0
     return game_over
 
 
@@ -138,6 +165,11 @@ def restar_game(game_over):
     if key_pressed[pygame.K_r] and game_over:
         INITIAL_STATE = [[200, 200], [220, 200]]
         global snake
+        global score
+        global velocity
+        pick_snake_color()
+        velocity = 20
+        score = 0
         snake = INITIAL_STATE
         game_over = False
 
