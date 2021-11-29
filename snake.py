@@ -8,7 +8,7 @@ GREEN = [0, 255, 0]
 WHITE = [255, 255, 255]
 RED = [255, 0, 0]
 FPS = 30
-SNAKE_COLORS = [['#12c2e9', '#f64f59'], ['#457fca', '#5691c8'], ['#00C9FF', '#92FE9D'], ['#f46b45', '#eea849']]
+SNAKE_COLORS = [['#12c2e9', '#f64f59'], ['#457fca', '#5691c8'], ['#00C9FF', '#92FE9D'], ['#f46b45', '#eea849'], ['#4158D0', '#FFCC70']]
 snake_color = []
 
 pygame.font.init()
@@ -22,6 +22,32 @@ snake = [[200, 200], [220, 200]]
 
 APPLE = pygame.Surface((20, 20))
 APPLE.fill(RED)
+
+
+def createBorder():
+    border = []
+    for index in range(0, WIDTH, 10):
+        border.append([index, 0])
+
+    for index in range(0, HEIGHT, 10):
+        border.append([WIDTH - 10, index])
+
+    for index in range(WIDTH, 0, -10):
+        border.append([index, HEIGHT - 10])
+
+    for index in range(HEIGHT, 0, -10):
+        border.append([0, index])
+    
+    return border
+
+
+border = createBorder()
+
+
+def moveBorder():
+    hold = border[-1]
+    border.pop()
+    border.insert(0, hold)
 
 
 def pick_snake_color():
@@ -41,11 +67,15 @@ def create_apple():
 def generateGridPos(direction):
     hold = 0
     if (direction == 'x'): 
-        hold = randint(0, WIDTH - 20)
+        hold = randint(10, WIDTH - 20)
     else:
-        hold = randint(0, HEIGHT - 20)
+        hold = randint(10, HEIGHT - 20)
         
     hold = (hold // 20) * 20
+
+    if hold == 0:
+        hold = 20
+    
 
     return hold
 
@@ -88,12 +118,27 @@ def move_snake(direction, velocity):
     snake.pop()
 
 
-def random_rgb(size):
-    first_color = Color(snake_color[0])
-    last_color = Color(snake_color[1])
+def random_rgb(size, color):
+    first_color = Color(color[0])
+    last_color = Color(color[1])
     arrayOfColors = list(first_color.range_to(last_color, size))
     hold = []
     for color in arrayOfColors:
+        r = ((color.get_red() * 255) * 10) // 10
+        g = ((color.get_green() * 255) * 10) // 10
+        b = ((color.get_blue() * 255) * 10) // 10
+        hold.append([r, g, b])
+    return hold
+
+
+def rgb_generator(color):
+    first_color = Color(color[0])
+    second_color = Color(color[1])
+    first_array = list(first_color.range_to(second_color, len(border) //2))
+    second_array = list(second_color.range_to(first_color, len(border) //2))
+    array_of_colors = [*first_array, *second_array]
+    hold = []
+    for color in array_of_colors:
         r = ((color.get_red() * 255) * 10) // 10
         g = ((color.get_green() * 255) * 10) // 10
         b = ((color.get_blue() * 255) * 10) // 10
@@ -120,10 +165,10 @@ def draw_window(apple, score, game_over):
         WINDOW.blit(scoreRender, [WIDTH//2 - 30, HEIGHT//2])
     else:
 
-        WINDOW.blit(scoreRender, [0, 0])
+        WINDOW.blit(scoreRender, [10, 10])
         WINDOW.blit(APPLE, [apple.x, apple.y])
 
-        colors = random_rgb(len(snake))
+        colors = random_rgb(len(snake), snake_color)
 
         index = 0
         for pos in snake:
@@ -132,6 +177,15 @@ def draw_window(apple, score, game_over):
 
             WINDOW.blit(SNAKE_SKIN, pos)
             index += 1
+
+        border_colors = rgb_generator(SNAKE_COLORS[0])
+        border_index = 0
+        for pos in border:
+            BORDER_SKIN = pygame.Surface((10, 10))
+            BORDER_SKIN.fill(border_colors[border_index])
+
+            WINDOW.blit(BORDER_SKIN, pos)
+            border_index += 1
 
 
 def check_body_colision(game_over):
@@ -146,10 +200,10 @@ def check_body_colision(game_over):
 def check_game_over(game_over):
     snake_head = snake[0]
     global velocity
-    if snake_head[0] <= -20 or snake_head[0] >= WIDTH:
+    if snake_head[0] <= 0 or snake_head[0] >= WIDTH - 10:
         game_over = True
         
-    if snake_head[1] <= -20 or snake_head[1] >= HEIGHT:
+    if snake_head[1] <= 0 or snake_head[1] >= HEIGHT - 10:
         game_over = True
         
     game_over = check_body_colision(game_over)
@@ -201,6 +255,7 @@ def game_start():
 
         direction = change_direction(direction)
         move_snake(direction, velocity)
+        moveBorder()
 
         comeu = eat_apple(apple)
         if comeu:
